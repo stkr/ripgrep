@@ -572,6 +572,7 @@ pub fn all_args_and_flags() -> Vec<RGArg> {
     flag_field_match_separator(&mut args);
     flag_file(&mut args);
     flag_files(&mut args);
+    flag_files_from(&mut args);
     flag_files_with_matches(&mut args);
     flag_files_without_match(&mut args);
     flag_fixed_strings(&mut args);
@@ -1300,6 +1301,28 @@ This is useful to determine whether a particular file is being searched or not.
         // This also technically conflicts with pattern, but the first file
         // path will actually be in pattern.
         .conflicts(&["file", "regexp", "type-list"]);
+    args.push(arg);
+}
+
+fn flag_files_from(args: &mut Vec<RGArg>) {
+    const SHORT: &str = "Take the list of paths to search from a file.";
+    const LONG: &str = long!(
+        "\
+Take the list of paths to search in from a file. Each line in the file shall
+contain a path to a file. This option can be combined with specifying additional
+paths on the command-line. Paths from the file are appended after the ones
+specified on the command line.
+
+If no files are given on the command line and the file specified by files-from
+does not contain paths either, the current directory is searched.
+
+To read the list of paths from stdin, use '-' as path for files-from.
+"
+    );
+    let arg = RGArg::flag("files-from", "PATH")
+        .help(SHORT)
+        .long_help(LONG)
+        .allow_leading_hyphen();
     args.push(arg);
 }
 

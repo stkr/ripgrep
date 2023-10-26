@@ -41,7 +41,7 @@ use grep::pcre2::{
 };
 
 use crate::{
-    app, config,
+    app, config, pathutil,
     logger::Logger,
     messages::{set_ignore_messages, set_messages},
     search::{PatternMatcher, Printer, SearchWorker, SearchWorkerBuilder},
@@ -538,7 +538,7 @@ impl ArgMatches {
         // We compute these once since they could be large.
         let patterns = self.patterns()?;
         let matcher = self.matcher(&patterns)?;
-        let mut paths = self.paths();
+        let mut paths = self.paths()?;
         let using_default_path = if paths.is_empty() {
             paths.push(self.path_default());
             true
@@ -1337,7 +1337,7 @@ impl ArgMatches {
     /// Return all file paths that ripgrep should search.
     ///
     /// If no paths were given, then this returns an empty list.
-    fn paths(&self) -> Vec<PathBuf> {
+    fn paths(&self) -> Result<Vec<PathBuf>> {
         let mut paths: Vec<PathBuf> = match self.values_of_os("path") {
             None => vec![],
             Some(paths) => paths.map(|p| Path::new(p).to_path_buf()).collect(),
@@ -1352,7 +1352,18 @@ impl ArgMatches {
                 paths.insert(0, Path::new(path).to_path_buf());
             }
         }
-        paths
+        // If --files-from is given, also append the files that are listed therein.
+        if self.is_present("files-from")
+        {
+            if let Some(files_from) = self.value_of_os("files-from") {
+                if files_from == "-" {
+                    paths.append(&mut pathutil::paths_from_stdin()?);
+                } else {
+                    paths.append(&mut pathutil::paths_from_path(files_from)?);
+                }
+            }
+        }
+        Ok(paths)
     }
 
     /// Return the default path that ripgrep should search. This should only

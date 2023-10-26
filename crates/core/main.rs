@@ -14,6 +14,7 @@ mod app;
 mod args;
 mod config;
 mod logger;
+mod pathutil;
 mod search;
 mod subject;
 
